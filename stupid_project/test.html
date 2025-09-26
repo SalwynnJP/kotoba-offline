@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yomitan Quiz</title>
+<meta name="description" content="Yomitan Quiz">
+<meta name="theme-color" content="#6200ee">
+<link rel="stylesheet" href="style.css">
+
+<script src="script.js" defer></script>
+
+<style>
+/* -------------------------
+   RESET & BASE
+------------------------- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Klee One', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
+    color: #e0e0e0;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* -------------------------
+   HEADER & TITLE
+------------------------- */
+.app-header {
+    text-align: center;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.app-title {
+    font-size: 3em;
+    margin-bottom: 10px;
+    background: linear-gradient(45deg, #bb86fc, #03dac6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: titleGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+    0% { filter: drop-shadow(0 0 10px rgba(187, 134, 252, 0.3)); }
+    100% { filter: drop-shadow(0 0 20px rgba(187, 134, 252, 0.6)); }
+}
+
+.app-subtitle {
+    font-size: 1em;
+    color: #aaa;
+    margin-bottom: 20px;
+}
+
+/* -------------------------
+   MAIN CONTAINER
+------------------------- */
+.main-container {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* -------------------------
+   CONTROLS SECTION
+------------------------- */
+.controls-section {
+    background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    border: 1px solid #333;
+}
+
+.control-group {
+    margin-bottom: 20px;
+}
+
+.control-group:last-child {
+    margin-bottom: 0;
+}
+
+.control-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #bb86fc;
+    font-size: 0.95em;
+}
+
+/* -------------------------
+   FILE INPUT STYLING
+------------------------- */
+.file-input-container {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.file-input-label {
+    display: block;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #6200ee, #3700b3);
+    color: white;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    font-weight: 500;
+    border: 2px solid transparent;
+}
+
+.file-input-label:hover {
+    background: linear-gradient(135deg, #7c4dff, #6200ee);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(98, 0, 238, 0.4);
+}
+
+.file-input-label:active {
+    transform: translateY(0);
+}
+
+.file-input-label::before {
+    content: "🔝";
+    margin-right: 8px;
+}
+
+#deckFile {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* -------------------------
+   SELECT STYLING
+------------------------- */
+select {
+    width: 100%;
+    padding: 15px 20px;
+    margin: 12px 0;
+    border: 2px solid #333;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+    color: #e0e0e0;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23bb86fc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 20px;
+    padding-right: 50px;
+}
+
+select:focus {
+    outline: none;
+    border-color: #bb86fc;
+    box-shadow: 0 0 15px rgba(187, 134, 252, 0.3);
+}
+
+select:hover {
+    border-color: #555;
+}
+
+/* -------------------------
+   MODE CONTROLS
+------------------------- */
+.mode-controls {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    padding: 8px 15px;
+    border-radius: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.mode-toggle:hover {
+    background-color: rgba(187, 134, 252, 0.1);
+}
+
+.toggle-switch {
+    position: relative;
+    width: 50px;
+    height: 28px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #444;
+    transition: .4s;
+    border-radius: 28px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+    background: linear-gradient(135deg, #fff, #f0f0f0);
+    transition: .4s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input:checked + .toggle-slider {
+    background: linear-gradient(135deg, #bb86fc, #6200ee);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(22px);
+}
+
+/* -------------------------
+   PROGRESS BAR
+------------------------- */
+#progressContainer {
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(30, 30, 30, 0.8);
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+}
+
+#progressText {
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #bb86fc;
+}
+
+#progressBar {
+    width: 100%;
+    height: 25px;
+    background: linear-gradient(135deg, #1e1e1e, #333);
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+}
+
+#progressFill {
+    height: 100%;
+    background: linear-gradient(135deg, #bb86fc, #6200ee);
+    border-radius: 15px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+#progressFill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* -------------------------
+   QUIZ CONTAINER
+------------------------- */
+#quizContainer {
+    background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+    border: 1px solid #333;
+    position: relative;
+    overflow: hidden;
+}
+
+#quizContainer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #bb86fc, #03dac6, #bb86fc);
+    background-size: 200% 100%;
+    animation: gradientShift 3s ease-in-out infinite;
+}
+
+@keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.question-counter {
+    background: linear-gradient(135deg, #6200ee, #3700b3);
+    color: white;
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: 600;
+}
+
+#question {
+    font-size: 1.6em;
+    margin-bottom: 15px;
+    color: #bb86fc;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+#question, #instructions, #comment {
+  white-space: pre-wrap;
+}
+
+#instructions {
+    font-size: 1em;
+    color: #aaa;
+    margin-bottom: 20px;
+}
+
+/* -------------------------
+   INPUT STYLING
+------------------------- */
+.input-container {
+    position: relative;
+    margin: 20px 0;
+}
+
+#answerInput {
+    width: 100%;
+    padding: 18px 24px;
+    font-size: 1.1em;
+    border: 2px solid #333;
+    border-radius: 15px;
+    background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+    color: #e0e0e0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+}
+
+#answerInput:focus {
+    border-color: #bb86fc;
+    box-shadow: 0 0 20px rgba(187, 134, 252, 0.3);
+    transform: translateY(-2px);
+}
+
+#answerInput::placeholder {
+    color: #666;
+}
+
+.input-hint {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    font-size: 0.8em;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+/* -------------------------
+   RESULTS & FEEDBACK
+------------------------- */
+#result {
+    margin: 20px 0;
+    font-weight: bold;
+    font-size: 1.2em;
+    text-align: center;
+    padding: 15px;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+#comment {
+    margin-top: 15px;
+    color: #03dac6;
+    background: rgba(3, 218, 198, 0.1);
+    padding: 15px;
+    border-radius: 12px;
+    border-left: 4px solid #03dac6;
+}
+
+/* -------------------------
+   BUTTONS
+------------------------- */
+button {
+    padding: 12px 25px;
+    margin: 8px 5px;
+    font-size: 1em;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #6200ee, #3700b3);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease;
+}
+
+button:hover {
+    background: linear-gradient(135deg, #7c4dff, #6200ee);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(98, 0, 238, 0.4);
+}
+
+button:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+button:active {
+    transform: translateY(-1px);
+}
+
+/* -------------------------
+   RESPONSIVE DESIGN
+------------------------- */
+@media (max-width: 768px) {
+    body {
+        padding: 15px;
+    }
+    
+    .app-title {
+        font-size: 2.2em;
+    }
+    
+    .controls-section {
+        padding: 20px;
+    }
+    
+    .mode-controls {
+        gap: 20px;
+    }
+    
+    #quizContainer {
+        padding: 20px;
+    }
+    
+    .question-header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .app-title {
+        font-size: 1.8em;
+    }
+    
+    .mode-controls {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    #question {
+        font-size: 1.3em;
+    }
+    
+    #answerInput {
+        font-size: 1em;
+        padding: 15px 20px;
+    }
+}
+
+/* -------------------------
+   LOADING & ANIMATIONS
+------------------------- */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.loading-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #333;
+    border-top: 4px solid #bb86fc;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* -------------------------
+   ACCESSIBILITY
+------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    /* Light theme could be added here if needed */
+}
+
+/* -------------------------
+   UTILITIES
+------------------------- */
+.hidden {
+    display: none !important;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in {
+    animation: slideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+</style>
+
+</head>
+<body>
+
+<header class="app-header">
+  <h1 class="app-title">🧠 Yomitan Quiz</h1>
+  <p class="app-subtitle">📊 統計機能付きの高度なクイズシステム</p>
+</header>
+
+<main class="main-container">
+  <section class="controls-section">
+    <div class="control-group">
+      <label class="control-label" for="deckFile">📁 CSVデッキを読み込む</label>
+      <div class="file-input-container">
+        <label for="deckFile" class="file-input-label">
+          デッキを読み込む
+        </label>
+        <input type="file" id="deckFile" accept=".csv,.tsv" />
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label" for="deckSelect">🎴 デッキの選択</label>
+      <select id="deckSelect">
+        <option value="">デッキを読み込む...</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label">⚙️ モード設定</label>
+      <div class="mode-controls">
+        <label class="mode-toggle">
+          <div class="toggle-switch">
+            <input type="checkbox" id="shuffleMode" checked>
+            <span class="toggle-slider"></span>
+          </div>
+          <span>🔀 Shuffle</span>
+        </label>
+        <label class="mode-toggle">
+          <div class="toggle-switch">
+            <input type="checkbox" id="conquestMode">
+            <span class="toggle-slider"></span>
+          </div>
+          <span>🏆 Conquest</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label" for="range">📊 出題範囲</label>
+      <select id="range" style="display:none;">
+        <option value="all">すべてのカード</option>
+      </select>
+    </div>
+  </section>
+</main>
+
+
+  <div id="progressContainer" style="display:none;">
+    <div id="progressText">0 / 0</div>
+    <div id="progressBar">
+      <div id="progressFill"></div>
+    </div>
+  </div>
+
+  <section id="quizContainer" style="display:none;" class="fade-in">
+    <div class="question-header">
+      <div class="question-counter" id="questionCounter">Questions</div>
+    </div>
+    
+    <div id="question"></div>
+    <div id="instructions"></div>
+    
+    <div class="input-container">
+      <input type="text" id="answerInput" placeholder="答えを入力してください..." />
+      <!--<div class="input-hint">Enter = 回答 | Tab = ヒント</div>-->
+    </div>
+    
+    <div id="result"></div>
+    <div id="comment"></div>
+  </section>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+</div>
+
+<div class="shortcuts-help" id="shortcutsHelp">
+  <strong>キーボードショートカ
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://unpkg.com/wanakana"></script>
