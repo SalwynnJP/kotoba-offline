@@ -27,7 +27,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 20px;
+    padding: 10px;
     min-height: 100vh;
     overflow-x: hidden;
 }
@@ -37,13 +37,13 @@ body {
 ------------------------- */
 .app-header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 15px;
     position: relative;
 }
 
 .app-title {
-    font-size: 3em;
-    margin-bottom: 10px;
+    font-size: 2.5em;
+    margin-bottom: 5px;
     background: linear-gradient(45deg, #bb86fc, #03dac6);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -70,7 +70,7 @@ body {
     max-width: 900px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 10px;
 }
 
 /* -------------------------
@@ -78,14 +78,14 @@ body {
 ------------------------- */
 .controls-section {
     background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
-    border-radius: 20px;
-    padding: 25px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    border-radius: 15px;
+    padding: 15px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
     border: 1px solid #333;
 }
 
 .control-group {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
 
 .control-group:last-child {
@@ -284,18 +284,19 @@ input:checked + .toggle-slider:before {
    TIMER STYLING
 ------------------------- */
 .timer-container {
-    position: absolute;
+    position: fixed;
     top: 15px;
-    right: 15px;
+    left: 15px;
     background: linear-gradient(135deg, #ff6b6b, #ff8e53);
     color: white;
-    padding: 8px 15px;
+    padding: 6px 12px;
     border-radius: 20px;
     font-weight: bold;
-    font-size: 1.1em;
-    min-width: 60px;
+    font-size: 1em;
+    min-width: 50px;
     text-align: center;
     box-shadow: 0 3px 10px rgba(255, 107, 107, 0.4);
+    z-index: 1100;
 }
 
 .timer-container.warning {
@@ -859,8 +860,10 @@ button:disabled {
       <label class="control-label">🔄 デッキの組み合わせ</label>
       <div class="deck-combination-section" id="deckCombination" style="display:none;">
         <div id="deckList"></div>
-        <div id="totalDisplay" style="text-align: center; font-weight: bold; margin: 10px 0; color: #F44336;">Total: 0%</div>
-        <button id="combineDecksBtn">選択したデッキを組み合わせ</button>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button id="combineDecksBtn">組み合わせ</button>
+          <button id="resetDeckSelectionBtn">リセット</button>
+        </div>
       </div>
     </div>
 
@@ -868,12 +871,18 @@ button:disabled {
       <label class="control-label">⚙️ クイズ設定</label>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 15px 0;">
         <div>
-          <label>⏰ 制限時間 (秒):</label>
-          <input type="number" id="timeLimit" class="settings-input" value="0" min="0" max="300" placeholder="0=無制限">
+          <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="timerEnabled" checked>
+            ⏰ 制限時間:
+            <input type="number" id="timeLimit" class="settings-input" value="60" min="0" max="300" placeholder="秒">
+          </label>
         </div>
         <div>
-          <label>❌ 最大ミス数:</label>
-          <input type="number" id="maxMissed" class="settings-input" value="0" min="0" max="100" placeholder="0=無制限">
+          <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="maxMissedEnabled" checked>
+            ❌ 最大ミス数:
+            <input type="number" id="maxMissed" class="settings-input" value="10" min="0" max="100" placeholder="回">
+          </label>
         </div>
       </div>
     </div>
@@ -965,6 +974,7 @@ class EnhancedQuizManager {
     this.correctCount = 0;
     this.missedQuestions = [];
     this.missedCount = 0;
+    this.consecutiveMissed = 0;
     this.decks = {};
     this.selectedDecks = new Set();
     this.deckWeights = {};
@@ -1004,17 +1014,21 @@ class EnhancedQuizManager {
       mainContainer: document.querySelector('.main-container'),
       timerDisplay: document.getElementById('timerDisplay'),
       timeLimitInput: document.getElementById('timeLimit'),
+      timerEnabledCheckbox: document.getElementById('timerEnabled'),
       maxMissedInput: document.getElementById('maxMissed'),
+      maxMissedEnabledCheckbox: document.getElementById('maxMissedEnabled'),
       multipleChoiceContainer: document.getElementById('multipleChoiceContainer'),
       inputContainer: document.getElementById('inputContainer'),
       deckCombination: document.getElementById('deckCombination'),
       deckList: document.getElementById('deckList'),
       combineDecksBtn: document.getElementById('combineDecksBtn'),
+      resetDeckSelectionBtn: document.getElementById('resetDeckSelectionBtn'),
       deleteDeckBtn: document.getElementById('deleteDeckBtn')
     };
 
     this.createMainToggleButton();
     this.toggleMainContainer(false);
+    this.toggleProgressContainer(false); // Cacher par défaut
   }
 
   toggleMainContainer(forceState = null) {
@@ -1024,11 +1038,49 @@ class EnhancedQuizManager {
   }
 
   createMainToggleButton() {
+    // Bouton toggle principal
     const btn = document.createElement('button');
     btn.textContent = "👁️";
     btn.className = "toggle-main-btn";
     btn.addEventListener('click', () => this.toggleMainContainer());
     document.body.appendChild(btn);
+
+    // Bouton toggle progress (juste en dessous)
+    const progressBtn = document.createElement('button');
+    progressBtn.textContent = "📊";
+    progressBtn.className = "toggle-progress-btn";
+    progressBtn.style.cssText = `
+      position: fixed;
+      top: 45px;
+      right: 5px;
+      padding: 6px 10px;
+      background: #ff6b6b;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 1100;
+      font-size: 1.2rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      line-height: 1;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+    `;
+    progressBtn.addEventListener('click', () => this.toggleProgressContainer());
+    document.body.appendChild(progressBtn);
+    
+    this.elements.toggleProgressBtn = progressBtn;
+  }
+
+  toggleProgressContainer(forceState = null) {
+    if (!this.elements.progressContainer) return;
+    const isVisible = forceState !== null ? forceState : this.elements.progressContainer.style.display === 'none';
+    this.elements.progressContainer.style.display = isVisible ? 'block' : 'none';
+    if (this.elements.toggleProgressBtn) {
+      this.elements.toggleProgressBtn.textContent = isVisible ? "📈" : "📊";
+    }
   }
 
   setupEventListeners() {
@@ -1046,10 +1098,13 @@ class EnhancedQuizManager {
     
     // Settings inputs
     this.elements.timeLimitInput?.addEventListener('change', () => this.updateTimeLimit());
+    this.elements.timerEnabledCheckbox?.addEventListener('change', () => this.toggleTimer());
     this.elements.maxMissedInput?.addEventListener('change', () => this.updateMaxMissed());
+    this.elements.maxMissedEnabledCheckbox?.addEventListener('change', () => this.toggleMaxMissed());
     
     // Deck combination
     this.elements.combineDecksBtn?.addEventListener('click', () => this.combineSelectedDecks());
+    this.elements.resetDeckSelectionBtn?.addEventListener('click', () => this.resetDeckSelection());
     this.elements.deleteDeckBtn?.addEventListener('click', () => this.deleteDeck());
 
     // Auto-focus management
@@ -1298,36 +1353,55 @@ class EnhancedQuizManager {
       label.htmlFor = `deck-${name}`;
       label.textContent = `${name} (${deck.data.length}問)`;
       
-      const controls = document.createElement('div');
-      controls.className = 'deck-controls';
-      
-      const percentageInput = document.createElement('input');
-      percentageInput.type = 'number';
-      percentageInput.className = 'percentage-slider';
-      percentageInput.min = '1';
-      percentageInput.max = '100';
-      percentageInput.value = '50';
-      percentageInput.disabled = true;
-      percentageInput.addEventListener('input', () => {
-        this.deckWeights[name] = parseInt(percentageInput.value);
-        this.normalizeWeights();
-      });
-      
-      const percentLabel = document.createElement('span');
-      percentLabel.textContent = '% ';
-      
-      controls.appendChild(percentageInput);
-      controls.appendChild(percentLabel);
-      
       deckItem.appendChild(checkbox);
       deckItem.appendChild(label);
-      deckItem.appendChild(controls);
       
       this.elements.deckList.appendChild(deckItem);
-      
-      // Store reference to percentage input
-      this.deckWeights[name] = { input: percentageInput, weight: 50 };
     });
+  }
+
+  resetDeckSelection() {
+    // Décocher toutes les checkboxes
+    this.elements.deckList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.checked = false;
+    });
+    
+    // Vider la sélection
+    this.selectedDecks.clear();
+    
+    this.showNotification('選択をリセットしました', 'info');
+  }
+
+  combineSelectedDecks() {
+    const selectedDeckNames = Array.from(this.selectedDecks);
+    if (selectedDeckNames.length < 2) {
+      this.showNotification('少なくとも2つのデッキを選択してください', 'warning');
+      return;
+    }
+    
+    // Simple : combiner toutes les questions de tous les decks
+    const combinedQuestions = [];
+    let combinedName = '組み合わせ: ';
+    
+    selectedDeckNames.forEach((name, index) => {
+      const deck = this.decks[name];
+      combinedQuestions.push(...deck.data);
+      combinedName += name;
+      if (index < selectedDeckNames.length - 1) combinedName += ' + ';
+    });
+    
+    this.decks[combinedName] = {
+      data: combinedQuestions,
+      preloaded: false,
+      combined: true,
+      uploadDate: new Date().toISOString()
+    };
+    
+    this.updateDeckSelect();
+    this.elements.deckSelect.value = combinedName;
+    this.loadDeck(combinedName, false);
+    
+    this.showNotification(`デッキを組み合わせました: ${combinedQuestions.length}問`, 'success');
   }
 
   toggleDeckSelection(deckName, selected) {
@@ -1336,14 +1410,6 @@ class EnhancedQuizManager {
     } else {
       this.selectedDecks.delete(deckName);
     }
-    
-    // Enable/disable percentage inputs
-    const input = this.deckWeights[deckName]?.input;
-    if (input) {
-      input.disabled = !selected;
-    }
-    
-    this.normalizeWeights();
   }
 
   normalizeWeights() {
@@ -1418,48 +1484,21 @@ class EnhancedQuizManager {
       return;
     }
     
-    // Vérifier que les pourcentages totalisent 100%
-    const totalWeight = selectedDeckNames.reduce((sum, name) => {
-      const input = this.deckWeights[name]?.input;
-      return sum + (input ? parseInt(input.value) || 0 : 0);
-    }, 0);
-    
-    if (totalWeight !== 100) {
-      this.showNotification(`合計は100%である必要があります (現在: ${totalWeight}%)`, 'error');
-      return;
-    }
-    
-    // Créer le deck combiné avec TOUTES les questions
+    // Simple : combiner toutes les questions de tous les decks
     const combinedQuestions = [];
-    const deckFrequencies = {};
     let combinedName = '組み合わせ: ';
     
-    // Collecter toutes les questions et les fréquences
     selectedDeckNames.forEach((name, index) => {
       const deck = this.decks[name];
-      const input = this.deckWeights[name]?.input;
-      const frequency = input ? parseInt(input.value) : 50;
-      
-      // Ajouter toutes les questions du deck
-      combinedQuestions.push(...deck.data.map(q => ({
-        ...q,
-        _sourceDeck: name,
-        _frequency: frequency
-      })));
-      
-      deckFrequencies[name] = frequency;
-      combinedName += `${name}(${frequency}%)`;
+      combinedQuestions.push(...deck.data);
+      combinedName += name;
       if (index < selectedDeckNames.length - 1) combinedName += ' + ';
     });
     
-    // Créer un deck shufflé selon les fréquences
-    const frequencyOrderedQuestions = this.createFrequencyBasedOrder(combinedQuestions, deckFrequencies);
-    
     this.decks[combinedName] = {
-      data: frequencyOrderedQuestions,
+      data: combinedQuestions,
       preloaded: false,
       combined: true,
-      frequencies: deckFrequencies,
       uploadDate: new Date().toISOString()
     };
     
@@ -1606,7 +1645,7 @@ class EnhancedQuizManager {
   }
 
   startTimer() {
-    if (this.timeLimit <= 0) {
+    if (!this.timerEnabled || this.timeLimit <= 0) {
       this.elements.timerDisplay.style.display = 'none';
       return;
     }
@@ -1679,6 +1718,11 @@ class EnhancedQuizManager {
         this.elements.multipleChoiceContainer.style.display = 'none';
         this.elements.inputContainer.style.display = 'block';
         setTimeout(() => this.elements.answerInput?.focus(), 50);
+      }
+      
+      // Afficher le bouton progress s'il ne l'est pas déjà
+      if (this.elements.toggleProgressBtn) {
+        this.elements.toggleProgressBtn.style.display = 'flex';
       }
       
       this.updateProgress();
@@ -1765,24 +1809,40 @@ class EnhancedQuizManager {
       this.normalizeAnswer(selectedChoice) === this.normalizeAnswer(answer)
     );
     
-    // Show correct/incorrect styling
-    buttons.forEach((btn, index) => {
-      const choice = this.currentChoices[index];
-      const isThisCorrect = correctAnswers.some(answer => 
-        this.normalizeAnswer(choice) === this.normalizeAnswer(answer)
-      );
-      
-      if (isThisCorrect) {
-        btn.classList.add('correct');
-      } else if (index === choiceIndex && !isCorrect) {
-        btn.classList.add('incorrect');
-      }
-    });
-    
     if (isCorrect) {
+      // Toujours montrer la bonne réponse en vert
+      buttons.forEach((btn, index) => {
+        const choice = this.currentChoices[index];
+        const isThisCorrect = correctAnswers.some(answer => 
+          this.normalizeAnswer(choice) === this.normalizeAnswer(answer)
+        );
+        if (isThisCorrect) {
+          btn.classList.add('correct');
+        }
+      });
       this.handleCorrectAnswer();
     } else {
-      this.handleIncorrectAnswer();
+      // En mode Conquest uniquement, ne pas montrer les bonnes réponses
+      if (this.conquestMode && !this.hardcoreMode) {
+        // Juste marquer comme incorrect sans révéler la bonne
+        selectedButton.classList.add('incorrect');
+        this.handleIncorrectAnswer();
+      } else {
+        // Mode Hardcore : montrer toutes les réponses
+        buttons.forEach((btn, index) => {
+          const choice = this.currentChoices[index];
+          const isThisCorrect = correctAnswers.some(answer => 
+            this.normalizeAnswer(choice) === this.normalizeAnswer(answer)
+          );
+          
+          if (isThisCorrect) {
+            btn.classList.add('correct');
+          } else if (index === choiceIndex) {
+            btn.classList.add('incorrect');
+          }
+        });
+        this.handleIncorrectAnswer();
+      }
     }
     
     this.stats.totalAnswered++;
@@ -1919,15 +1979,23 @@ class EnhancedQuizManager {
   updateProgress() {
     if (!this.elements.progressContainer) return;
 
-    this.elements.progressContainer.style.display = 'block';
+    // Ne pas forcer l'affichage, respecter le toggle
+    // this.elements.progressContainer.style.display = 'block';
     
     const current = this.currentIndex + 1;
     const total = this.filteredQuestions.length;
     const percent = Math.round((current / total) * 100);
     
+    let missedDisplay = '';
+    if (this.maxMissedEnabled && this.maxMissed > 0) {
+      missedDisplay = `連続ミス: ${this.consecutiveMissed} / ${this.maxMissed}`;
+    } else {
+      missedDisplay = `連続ミス: ${this.consecutiveMissed}`;
+    }
+    
     this.elements.progressText.innerHTML = `
       <span>${current} / ${total} (${percent}%)</span>
-      <span class="missed-counter">ミス: ${this.missedCount}${this.maxMissed > 0 ? ` / ${this.maxMissed}` : ''}</span>
+      <span class="missed-counter">${missedDisplay}</span>
     `;
     this.elements.progressFill.style.width = `${percent}%`;
     
