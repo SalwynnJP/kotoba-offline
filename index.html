@@ -1,0 +1,2218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enhanced Yomitan Quiz</title>
+<meta name="description" content="Enhanced Yomitan Quiz with advanced features">
+<meta name="theme-color" content="#6200ee">
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://unpkg.com/wanakana"></script>
+
+<style>
+/* -------------------------
+   RESET & BASE
+------------------------- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
+    color: #e0e0e0;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* -------------------------
+   HEADER & TITLE
+------------------------- */
+.app-header {
+    text-align: center;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.app-title {
+    font-size: 3em;
+    margin-bottom: 10px;
+    background: linear-gradient(45deg, #bb86fc, #03dac6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: titleGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+    0% { filter: drop-shadow(0 0 10px rgba(187, 134, 252, 0.3)); }
+    100% { filter: drop-shadow(0 0 20px rgba(187, 134, 252, 0.6)); }
+}
+
+.app-subtitle {
+    font-size: 1em;
+    color: #aaa;
+    margin-bottom: 20px;
+}
+
+/* -------------------------
+   MAIN CONTAINER
+------------------------- */
+.main-container {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* -------------------------
+   CONTROLS SECTION
+------------------------- */
+.controls-section {
+    background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    border: 1px solid #333;
+}
+
+.control-group {
+    margin-bottom: 20px;
+}
+
+.control-group:last-child {
+    margin-bottom: 0;
+}
+
+.control-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #bb86fc;
+    font-size: 0.95em;
+}
+
+/* -------------------------
+   FILE INPUT STYLING
+------------------------- */
+.file-input-container {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.file-input-label {
+    display: block;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #6200ee, #3700b3);
+    color: white;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    font-weight: 500;
+    border: 2px solid transparent;
+}
+
+.file-input-label:hover {
+    background: linear-gradient(135deg, #7c4dff, #6200ee);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(98, 0, 238, 0.4);
+}
+
+.file-input-label:active {
+    transform: translateY(0);
+}
+
+.file-input-label::before {
+    content: "📁";
+    margin-right: 8px;
+}
+
+input[type="file"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* -------------------------
+   SELECT STYLING
+------------------------- */
+select {
+    width: 100%;
+    padding: 15px 20px;
+    margin: 12px 0;
+    border: 2px solid #333;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+    color: #e0e0e0;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23bb86fc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 20px;
+    padding-right: 50px;
+}
+
+select:focus {
+    outline: none;
+    border-color: #bb86fc;
+    box-shadow: 0 0 15px rgba(187, 134, 252, 0.3);
+}
+
+select:hover {
+    border-color: #555;
+}
+
+/* -------------------------
+   DECK COMBINATION STYLING
+------------------------- */
+.deck-combination-section {
+    background: rgba(98, 0, 238, 0.1);
+    border: 2px solid #6200ee;
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 15px;
+}
+
+.deck-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    margin: 8px 0;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    border: 1px solid #444;
+}
+
+.deck-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.percentage-slider {
+    width: 80px;
+    margin: 0 10px;
+}
+
+/* -------------------------
+   MODE CONTROLS
+------------------------- */
+.mode-controls {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    padding: 8px 15px;
+    border-radius: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.mode-toggle:hover {
+    background-color: rgba(187, 134, 252, 0.1);
+}
+
+.toggle-switch {
+    position: relative;
+    width: 50px;
+    height: 28px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #444;
+    transition: .4s;
+    border-radius: 28px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+    background: linear-gradient(135deg, #fff, #f0f0f0);
+    transition: .4s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input:checked + .toggle-slider {
+    background: linear-gradient(135deg, #bb86fc, #6200ee);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(22px);
+}
+
+/* -------------------------
+   TIMER STYLING
+------------------------- */
+.timer-container {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 1.1em;
+    min-width: 60px;
+    text-align: center;
+    box-shadow: 0 3px 10px rgba(255, 107, 107, 0.4);
+}
+
+.timer-container.warning {
+    background: linear-gradient(135deg, #ff9800, #f57c00);
+    animation: pulse 0.5s infinite alternate;
+}
+
+.timer-container.critical {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    animation: pulse 0.3s infinite alternate;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.1); }
+}
+
+/* -------------------------
+   PROGRESS BAR
+------------------------- */
+#progressContainer {
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(30, 30, 30, 0.8);
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    position: relative;
+}
+
+#progressText {
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #bb86fc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.missed-counter {
+    color: #f44336;
+    font-size: 0.9em;
+}
+
+#progressBar {
+    width: 100%;
+    height: 25px;
+    background: linear-gradient(135deg, #1e1e1e, #333);
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+}
+
+#progressFill {
+    height: 100%;
+    background: linear-gradient(135deg, #bb86fc, #6200ee);
+    border-radius: 15px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+#progressFill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* -------------------------
+   QUIZ CONTAINER
+------------------------- */
+#quizContainer {
+    background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+    border: 1px solid #333;
+    position: relative;
+    overflow: hidden;
+}
+
+#quizContainer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #bb86fc, #03dac6, #bb86fc);
+    background-size: 200% 100%;
+    animation: gradientShift 3s ease-in-out infinite;
+}
+
+@keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.question-counter {
+    background: linear-gradient(135deg, #6200ee, #3700b3);
+    color: white;
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: 600;
+}
+
+#question {
+    font-size: 1.6em;
+    margin-bottom: 15px;
+    color: #bb86fc;
+    line-height: 1.4;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+#instructions {
+    font-size: 1em;
+    color: #aaa;
+    margin-bottom: 20px;
+    white-space: pre-wrap;
+}
+
+/* -------------------------
+   MULTIPLE CHOICE STYLING
+------------------------- */
+.multiple-choice-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.choice-button {
+    padding: 15px 20px;
+    font-size: 1em;
+    font-weight: 500;
+    color: #e0e0e0;
+    background: linear-gradient(135deg, #2a2a2a, #1e1e1e);
+    border: 2px solid #444;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+}
+
+.choice-button:hover {
+    border-color: #bb86fc;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(187, 134, 252, 0.3);
+}
+
+.choice-button.selected {
+    background: linear-gradient(135deg, #6200ee, #3700b3);
+    border-color: #bb86fc;
+}
+
+.choice-button.correct {
+    background: linear-gradient(135deg, #4caf50, #2e7d32);
+    border-color: #66bb6a;
+}
+
+.choice-button.incorrect {
+    background: linear-gradient(135deg, #f44336, #c62828);
+    border-color: #ef5350;
+}
+
+.choice-number {
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    text-align: center;
+    line-height: 25px;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+/* -------------------------
+   INPUT STYLING
+------------------------- */
+.input-container {
+    position: relative;
+    margin: 20px 0;
+}
+
+#answerInput {
+    width: 100%;
+    padding: 18px 24px;
+    font-size: 1.1em;
+    border: 2px solid #333;
+    border-radius: 15px;
+    background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+    color: #e0e0e0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+    /* Corrections pour mobile */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#answerInput:focus {
+    border-color: #bb86fc;
+    box-shadow: 0 0 20px rgba(187, 134, 252, 0.3);
+    transform: translateY(-2px);
+}
+
+#answerInput::placeholder {
+    color: #666;
+}
+
+.input-hint {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    font-size: 0.8em;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+/* -------------------------
+   RESULTS & FEEDBACK
+------------------------- */
+#result {
+    margin: 20px 0;
+    font-weight: bold;
+    font-size: 1.2em;
+    text-align: center;
+    padding: 15px;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+#comment {
+    margin-top: 15px;
+    color: #03dac6;
+    background: rgba(3, 218, 198, 0.1);
+    padding: 15px;
+    border-radius: 12px;
+    border-left: 4px solid #03dac6;
+    white-space: pre-wrap;
+}
+
+/* -------------------------
+   SETTINGS INPUT
+------------------------- */
+.settings-input {
+    width: 80px;
+    padding: 8px 12px;
+    margin: 0 8px;
+    border: 2px solid #333;
+    border-radius: 8px;
+    background: #2a2a2a;
+    color: #e0e0e0;
+    font-size: 0.9em;
+    text-align: center;
+}
+
+.settings-input:focus {
+    outline: none;
+    border-color: #bb86fc;
+}
+
+/* -------------------------
+   BUTTONS
+------------------------- */
+button {
+    padding: 12px 25px;
+    margin: 8px 5px;
+    font-size: 1em;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #6200ee, #3700b3);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease;
+}
+
+button:hover {
+    background: linear-gradient(135deg, #7c4dff, #6200ee);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(98, 0, 238, 0.4);
+}
+
+button:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+button:active {
+    transform: translateY(-1px);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.delete-deck-btn {
+    background: linear-gradient(135deg, #cf6679, #b71c1c);
+}
+
+.delete-deck-btn:hover {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+}
+
+/* -------------------------
+   TOGGLE BUTTON
+------------------------- */
+.toggle-main-btn {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    padding: 8px 12px;
+    background: #6200ee;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 1100;
+    font-size: 1.2rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+}
+
+.toggle-main-btn:active {
+    transform: scale(0.9);
+}
+
+/* -------------------------
+   NOTIFICATIONS
+------------------------- */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    max-width: 300px;
+    word-wrap: break-word;
+}
+
+.notification.success { background-color: #4CAF50; }
+.notification.error { background-color: #F44336; }
+.notification.warning { background-color: #FF9800; }
+.notification.info { background-color: #2196F3; }
+
+/* -------------------------
+   RESPONSIVE DESIGN
+------------------------- */
+@media (max-width: 768px) {
+    body {
+        padding: 15px;
+    }
+    
+    .app-title {
+        font-size: 2.2em;
+    }
+    
+    .controls-section {
+        padding: 20px;
+    }
+    
+    .mode-controls {
+        gap: 20px;
+    }
+    
+    #quizContainer {
+        padding: 20px;
+    }
+    
+    .question-header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .multiple-choice-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .timer-container {
+        position: static;
+        margin: 10px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .app-title {
+        font-size: 1.8em;
+    }
+    
+    .mode-controls {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    #question {
+        font-size: 1.3em;
+    }
+    
+    #answerInput {
+        font-size: 1em;
+        padding: 15px 20px;
+    }
+    
+    .toggle-main-btn {
+        top: 10px !important;
+        right: 10px !important;
+        padding: 6px 10px !important;
+        font-size: 1rem !important;
+    }
+}
+
+/* -------------------------
+   UTILITIES
+------------------------- */
+.hidden {
+    display: none !important;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Results container styles */
+.results-container {
+    text-align: center;
+    padding: 20px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.stat-item {
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.stat-item:hover {
+    transform: translateY(-2px);
+}
+
+.stat-item.correct { background-color: #1B5E20; }
+.stat-item.incorrect { background-color: #B71C1C; }
+.stat-item.percentage { background-color: #1565C0; }
+
+.stat-number {
+    display: block;
+    font-size: 2em;
+    font-weight: bold;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.result-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1 class="app-title">🧠 Yomitan Quiz</h1>
+</header>
+
+<main class="main-container">
+  <section class="controls-section">
+    <div class="control-group">
+      <label class="control-label" for="deckFile">📁 CSVデッキを読み込む</label>
+      <div class="file-input-container">
+        <label for="deckFile" class="file-input-label">
+          デッキを読み込む
+        </label>
+        <input type="file" id="deckFile" accept=".csv,.tsv" multiple />
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label" for="deckSelect">🎴 デッキの選択</label>
+      <select id="deckSelect">
+        <option value="">デッキを読み込む...</option>
+      </select>
+      <button class="delete-deck-btn" id="deleteDeckBtn" style="display:none;">選択したデッキを削除</button>
+    </div>
+
+    <!-- Deck Combination Section -->
+    <div class="control-group">
+      <label class="control-label">🔄 デッキの組み合わせ</label>
+      <div class="deck-combination-section" id="deckCombination" style="display:none;">
+        <div id="deckList"></div>
+        <div id="totalDisplay" style="text-align: center; font-weight: bold; margin: 10px 0; color: #F44336;">Total: 0%</div>
+        <button id="combineDecksBtn">選択したデッキを組み合わせ</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label">⚙️ クイズ設定</label>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 15px 0;">
+        <div>
+          <label>⏰ 制限時間 (秒):</label>
+          <input type="number" id="timeLimit" class="settings-input" value="0" min="0" max="300" placeholder="0=無制限">
+        </div>
+        <div>
+          <label>❌ 最大ミス数:</label>
+          <input type="number" id="maxMissed" class="settings-input" value="0" min="0" max="100" placeholder="0=無制限">
+        </div>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label">⚙️ モード設定</label>
+      <div class="mode-controls">
+        <label class="mode-toggle">
+          <div class="toggle-switch">
+            <input type="checkbox" id="shuffleMode" checked>
+            <span class="toggle-slider"></span>
+          </div>
+          <span>🔀 Shuffle</span>
+        </label>
+        <label class="mode-toggle">
+          <div class="toggle-switch">
+            <input type="checkbox" id="conquestMode" checked>
+            <span class="toggle-slider"></span>
+          </div>
+          <span>🏆 Conquest</span>
+        </label>
+        <label class="mode-toggle">
+          <div class="toggle-switch">
+            <input type="checkbox" id="hardcoreMode">
+            <span class="toggle-slider"></span>
+          </div>
+          <span>💀 Hardcore</span>
+        </label>
+        <label class="mode-toggle">
+          <div class="toggle-switch">
+            <input type="checkbox" id="multipleChoiceMode">
+            <span class="toggle-slider"></span>
+          </div>
+          <span>📝 選択モード</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label" for="range">📊 出題範囲</label>
+      <select id="range" style="display:none;">
+        <option value="all">すべてのカード</option>
+      </select>
+    </div>
+  </section>
+</main>
+
+<div id="progressContainer" style="display:none;">
+  <div id="progressText">
+    <span>0 / 0</span>
+    <span class="missed-counter">ミス: 0</span>
+  </div>
+  <div id="progressBar">
+    <div id="progressFill"></div>
+  </div>
+</div>
+
+<section id="quizContainer" style="display:none;" class="fade-in">
+  <div class="timer-container" id="timerDisplay" style="display:none;">30</div>
+  
+  <div class="question-header">
+    <div class="question-counter" id="questionCounter">Questions</div>
+  </div>
+  
+  <div id="question"></div>
+  <div id="instructions"></div>
+  
+  <div class="input-container" id="inputContainer">
+    <input type="text" id="answerInput" placeholder="答えを入力してください..." />
+  </div>
+  
+  <div class="multiple-choice-container" id="multipleChoiceContainer" style="display:none;">
+  </div>
+  
+  <div id="result"></div>
+  <div id="comment"></div>
+</section>
+
+<script>
+class EnhancedQuizManager {
+  constructor() {
+    this.questions = [];
+    this.filteredQuestions = [];
+    this.currentIndex = 0;
+    this.shuffleMode = true;
+    this.conquestMode = true; // Conquest par défaut
+    this.hardcoreMode = false;
+    this.multipleChoiceMode = false; // Mode choix multiples
+    this.correctCount = 0;
+    this.missedQuestions = [];
+    this.missedCount = 0;
+    this.decks = {};
+    this.selectedDecks = new Set();
+    this.deckWeights = {};
+    this.stats = { totalAnswered: 0, streak: 0, bestStreak: 0 };
+    this.timer = null;
+    this.timeRemaining = 0;
+    this.timeLimit = 0;
+    this.maxMissed = 0;
+    this.currentQuestionStartTime = 0;
+    
+    this.initializeElements();
+    this.setupEventListeners();
+    this.loadPreloadedDecks();
+    this.loadStats();
+    this.setupKeyboardShortcuts();
+  }
+
+  initializeElements() {
+    this.elements = {
+      progressContainer: document.getElementById('progressContainer'),
+      progressText: document.getElementById('progressText'),
+      progressFill: document.getElementById('progressFill'),
+      progressBar: document.getElementById('progressBar'),
+      csvInput: document.getElementById('deckFile'),
+      deckSelect: document.getElementById('deckSelect'),
+      rangeSelect: document.getElementById('range'),
+      questionDiv: document.getElementById('question'),
+      instructionsDiv: document.getElementById('instructions'),
+      commentDiv: document.getElementById('comment'),
+      answerInput: document.getElementById('answerInput'),
+      resultDiv: document.getElementById('result'),
+      quizContainer: document.getElementById('quizContainer'),
+      shuffleCheckbox: document.getElementById('shuffleMode'),
+      conquestCheckbox: document.getElementById('conquestMode'),
+      hardcoreCheckbox: document.getElementById('hardcoreMode'),
+      multipleChoiceCheckbox: document.getElementById('multipleChoiceMode'),
+      mainContainer: document.querySelector('.main-container'),
+      timerDisplay: document.getElementById('timerDisplay'),
+      timeLimitInput: document.getElementById('timeLimit'),
+      maxMissedInput: document.getElementById('maxMissed'),
+      multipleChoiceContainer: document.getElementById('multipleChoiceContainer'),
+      inputContainer: document.getElementById('inputContainer'),
+      deckCombination: document.getElementById('deckCombination'),
+      deckList: document.getElementById('deckList'),
+      combineDecksBtn: document.getElementById('combineDecksBtn'),
+      deleteDeckBtn: document.getElementById('deleteDeckBtn')
+    };
+
+    this.createMainToggleButton();
+    this.toggleMainContainer(false);
+  }
+
+  toggleMainContainer(forceState = null) {
+    if (!this.elements.mainContainer) return;
+    const isVisible = forceState !== null ? forceState : this.elements.mainContainer.style.display === 'none';
+    this.elements.mainContainer.style.display = isVisible ? 'block' : 'none';
+  }
+
+  createMainToggleButton() {
+    const btn = document.createElement('button');
+    btn.textContent = "👁️";
+    btn.className = "toggle-main-btn";
+    btn.addEventListener('click', () => this.toggleMainContainer());
+    document.body.appendChild(btn);
+  }
+
+  setupEventListeners() {
+    // Mode toggles
+    this.elements.shuffleCheckbox?.addEventListener('change', () => this.toggleShuffleMode());
+    this.elements.conquestCheckbox?.addEventListener('change', () => this.toggleConquestMode());
+    this.elements.hardcoreCheckbox?.addEventListener('change', () => this.toggleHardcoreMode());
+    this.elements.multipleChoiceCheckbox?.addEventListener('change', () => this.toggleMultipleChoiceMode());
+
+    // Input handlers
+    this.elements.answerInput?.addEventListener('keydown', (e) => this.handleAnswerInput(e));
+    this.elements.csvInput?.addEventListener('change', (e) => this.handleFileUpload(e));
+    this.elements.deckSelect?.addEventListener('change', () => this.handleDeckChange());
+    this.elements.rangeSelect?.addEventListener('change', () => this.filterQuestions());
+    
+    // Settings inputs
+    this.elements.timeLimitInput?.addEventListener('change', () => this.updateTimeLimit());
+    this.elements.maxMissedInput?.addEventListener('change', () => this.updateMaxMissed());
+    
+    // Deck combination
+    this.elements.combineDecksBtn?.addEventListener('click', () => this.combineSelectedDecks());
+    this.elements.deleteDeckBtn?.addEventListener('click', () => this.deleteDeck());
+
+    // Auto-focus management
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && this.elements.answerInput?.style.display !== 'none') {
+        setTimeout(() => this.elements.answerInput?.focus(), 100);
+      }
+    });
+  }
+
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      
+      switch(e.key) {
+        case 's': case 'S':
+          e.preventDefault();
+          this.elements.shuffleCheckbox?.click();
+          break;
+        case 'c': case 'C':
+          e.preventDefault();
+          this.elements.conquestCheckbox?.click();
+          break;
+        case 'h': case 'H':
+          e.preventDefault();
+          this.elements.hardcoreCheckbox?.click();
+          break;
+        case '1': case '2': case '3': case '4':
+          if (this.isMultipleChoice()) {
+            e.preventDefault();
+            this.selectChoice(parseInt(e.key) - 1);
+          }
+          break;
+        case 'r': case 'R':
+          e.preventDefault();
+          if (e.ctrlKey) this.restartQuiz();
+          break;
+        case 'Escape':
+          this.elements.answerInput?.blur();
+          break;
+      }
+    });
+  }
+
+  toggleShuffleMode() {
+    this.shuffleMode = this.elements.shuffleCheckbox?.checked ?? true;
+    this.showNotification(`シャッフルモード: ${this.shuffleMode ? 'ON' : 'OFF'}`, 'info');
+    if (this.filteredQuestions.length > 0) {
+      this.filterQuestions();
+    }
+  }
+
+  toggleConquestMode() {
+    this.conquestMode = this.elements.conquestCheckbox?.checked ?? true;
+    
+    // Si Conquest est activé, désactiver Hardcore
+    if (this.conquestMode && this.hardcoreMode) {
+      this.hardcoreMode = false;
+      this.elements.hardcoreCheckbox.checked = false;
+    }
+    
+    // Au moins un des deux modes doit être actif
+    if (!this.conquestMode && !this.hardcoreMode) {
+      this.hardcoreMode = true;
+      this.elements.hardcoreCheckbox.checked = true;
+    }
+    
+    this.showNotification(`コンクエストモード: ${this.conquestMode ? 'ON' : 'OFF'}`, 'info');
+    if (this.conquestMode) {
+      this.loadConquest();
+    } else {
+      localStorage.removeItem('conquestSession');
+    }
+  }
+
+  toggleHardcoreMode() {
+    this.hardcoreMode = this.elements.hardcoreCheckbox?.checked ?? false;
+    
+    // Si Hardcore est activé, désactiver Conquest
+    if (this.hardcoreMode && this.conquestMode) {
+      this.conquestMode = false;
+      this.elements.conquestCheckbox.checked = false;
+    }
+    
+    // Au moins un des deux modes doit être actif
+    if (!this.conquestMode && !this.hardcoreMode) {
+      this.conquestMode = true;
+      this.elements.conquestCheckbox.checked = true;
+    }
+    
+    this.showNotification(`ハードコアモード: ${this.hardcoreMode ? 'ON' : 'OFF'}`, 'info');
+  }
+
+  toggleMultipleChoiceMode() {
+    this.multipleChoiceMode = this.elements.multipleChoiceCheckbox?.checked ?? false;
+    this.showNotification(`選択モード: ${this.multipleChoiceMode ? 'ON' : 'OFF'}`, 'info');
+    
+    // Appliquer le changement immédiatement sur la question actuelle
+    if (this.filteredQuestions.length > 0 && this.currentIndex < this.filteredQuestions.length) {
+      this.refreshCurrentQuestion();
+    }
+  }
+
+  updateMaxMissed() {
+    this.maxMissed = parseInt(this.elements.maxMissedInput?.value || '0');
+    this.showNotification(`最大ミス数: ${this.maxMissed === 0 ? '無制限' : this.maxMissed + '回'}`, 'info');
+    
+    // Mettre à jour l'affichage de la progression immédiatement
+    this.updateProgress();
+  }
+
+  refreshCurrentQuestion() {
+    if (this.currentIndex >= this.filteredQuestions.length) return;
+    
+    const q = this.filteredQuestions[this.currentIndex];
+    
+    // Réinitialiser les éléments de réponse
+    this.elements.answerInput.value = '';
+    this.elements.resultDiv.textContent = '';
+    this.elements.commentDiv.innerHTML = '';
+    
+    // Afficher selon le mode
+    if (this.isMultipleChoice()) {
+      this.showMultipleChoice(q);
+      this.elements.inputContainer.style.display = 'none';
+    } else {
+      this.elements.multipleChoiceContainer.style.display = 'none';
+      this.elements.inputContainer.style.display = 'block';
+      setTimeout(() => this.elements.answerInput?.focus(), 50);
+    }
+  }
+
+  updateTimeLimit() {
+    this.timeLimit = parseInt(this.elements.timeLimitInput?.value || '0');
+    this.showNotification(`制限時間: ${this.timeLimit === 0 ? '無制限' : this.timeLimit + '秒'}`, 'info');
+  }
+
+  updateMaxMissed() {
+    this.maxMissed = parseInt(this.elements.maxMissedInput?.value || '0');
+    this.showNotification(`最大ミス数: ${this.maxMissed === 0 ? '無制限' : this.maxMissed + '回'}`, 'info');
+  }
+
+  async handleFileUpload(event) {
+    const files = Array.from(event.target.files);
+    if (!files.length) return;
+
+    for (const file of files) {
+      try {
+        this.showNotification('ファイルを読み込み中...', 'info');
+        
+        const results = await this.parseCSVFile(file);
+        const deckName = this.sanitizeFileName(file.name);
+        
+        if (results.data.length === 0) {
+          throw new Error('ファイルにデータが見つかりません');
+        }
+
+        this.validateDeckData(results.data);
+        
+        this.decks[deckName] = { 
+          data: results.data, 
+          preloaded: false,
+          uploadDate: new Date().toISOString()
+        };
+        
+        this.showNotification(`${deckName} を正常に読み込みました (${results.data.length}問)`, 'success');
+      } catch (error) {
+        this.showNotification(`エラー: ${error.message}`, 'error');
+        console.error('File upload error:', error);
+      }
+    }
+    
+    this.updateDeckSelect();
+    this.updateDeckCombination();
+  }
+
+  parseCSVFile(file) {
+    return new Promise((resolve, reject) => {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: true,
+        complete: resolve,
+        error: reject
+      });
+    });
+  }
+
+  sanitizeFileName(fileName) {
+    return fileName.replace(/[^a-zA-Z0-9.-]/g, '_').replace('.csv', '');
+  }
+
+  validateDeckData(data) {
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new Error('無効なデータ形式');
+    }
+
+    const requiredFields = ['Question', 'Answers'];
+    const firstRow = data[0];
+    
+    for (const field of requiredFields) {
+      if (!(field in firstRow)) {
+        throw new Error(`必須フィールド '${field}' が見つかりません`);
+      }
+    }
+  }
+
+  updateDeckSelect() {
+    if (!this.elements.deckSelect) return;
+
+    this.elements.deckSelect.innerHTML = '<option value="">デッキを選択...</option>';
+    
+    Object.entries(this.decks).forEach(([name, deck]) => {
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = `${name} (${deck.data.length}問)${deck.preloaded ? ' [内蔵]' : ''}`;
+      this.elements.deckSelect.appendChild(option);
+    });
+
+    this.updateDeleteButtonVisibility();
+  }
+
+  updateDeckCombination() {
+    if (!this.elements.deckList) return;
+
+    this.elements.deckList.innerHTML = '';
+    const deckCount = Object.keys(this.decks).length;
+    
+    if (deckCount < 2) {
+      this.elements.deckCombination.style.display = 'none';
+      return;
+    }
+
+    this.elements.deckCombination.style.display = 'block';
+    
+    Object.entries(this.decks).forEach(([name, deck]) => {
+      const deckItem = document.createElement('div');
+      deckItem.className = 'deck-item';
+      
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = `deck-${name}`;
+      checkbox.addEventListener('change', () => this.toggleDeckSelection(name, checkbox.checked));
+      
+      const label = document.createElement('label');
+      label.htmlFor = `deck-${name}`;
+      label.textContent = `${name} (${deck.data.length}問)`;
+      
+      const controls = document.createElement('div');
+      controls.className = 'deck-controls';
+      
+      const percentageInput = document.createElement('input');
+      percentageInput.type = 'number';
+      percentageInput.className = 'percentage-slider';
+      percentageInput.min = '1';
+      percentageInput.max = '100';
+      percentageInput.value = '50';
+      percentageInput.disabled = true;
+      percentageInput.addEventListener('input', () => {
+        this.deckWeights[name] = parseInt(percentageInput.value);
+        this.normalizeWeights();
+      });
+      
+      const percentLabel = document.createElement('span');
+      percentLabel.textContent = '% ';
+      
+      controls.appendChild(percentageInput);
+      controls.appendChild(percentLabel);
+      
+      deckItem.appendChild(checkbox);
+      deckItem.appendChild(label);
+      deckItem.appendChild(controls);
+      
+      this.elements.deckList.appendChild(deckItem);
+      
+      // Store reference to percentage input
+      this.deckWeights[name] = { input: percentageInput, weight: 50 };
+    });
+  }
+
+  toggleDeckSelection(deckName, selected) {
+    if (selected) {
+      this.selectedDecks.add(deckName);
+    } else {
+      this.selectedDecks.delete(deckName);
+    }
+    
+    // Enable/disable percentage inputs
+    const input = this.deckWeights[deckName]?.input;
+    if (input) {
+      input.disabled = !selected;
+    }
+    
+    this.normalizeWeights();
+  }
+
+  normalizeWeights() {
+    const selectedDeckNames = Array.from(this.selectedDecks);
+    if (selectedDeckNames.length < 2) return;
+    
+    // Calculer le total actuel
+    let totalWeight = selectedDeckNames.reduce((sum, name) => {
+      const input = this.deckWeights[name]?.input;
+      return sum + (input ? parseInt(input.value) || 0 : 0);
+    }, 0);
+    
+    // Si le total dépasse 100, ajuster automatiquement
+    if (totalWeight > 100) {
+      const activeInput = document.activeElement;
+      let fixedValue = 0;
+      let fixedDeck = null;
+      
+      // Trouver quel input est en cours de modification
+      selectedDeckNames.forEach(name => {
+        const input = this.deckWeights[name]?.input;
+        if (input === activeInput) {
+          fixedValue = Math.min(100, parseInt(input.value) || 0);
+          input.value = fixedValue;
+          fixedDeck = name;
+        }
+      });
+      
+      if (fixedDeck) {
+        // Distribuer le reste (100 - fixedValue) entre les autres decks
+        const remaining = 100 - fixedValue;
+        const otherDecks = selectedDeckNames.filter(n => n !== fixedDeck);
+        
+        if (otherDecks.length > 0) {
+          const sharePerDeck = Math.floor(remaining / otherDecks.length);
+          let remainder = remaining - (sharePerDeck * otherDecks.length);
+          
+          otherDecks.forEach((name, index) => {
+            const input = this.deckWeights[name]?.input;
+            if (input) {
+              // Le premier deck prend le reste
+              input.value = sharePerDeck + (index === 0 ? remainder : 0);
+            }
+          });
+        }
+      }
+    }
+    
+    // Vérifier que le total fait bien 100%
+    this.updateTotalDisplay();
+  }
+
+  updateTotalDisplay() {
+    const selectedDeckNames = Array.from(this.selectedDecks);
+    const total = selectedDeckNames.reduce((sum, name) => {
+      const input = this.deckWeights[name]?.input;
+      return sum + (input ? parseInt(input.value) || 0 : 0);
+    }, 0);
+    
+    // Afficher le total quelque part (on peut ajouter un élément pour cela)
+    const existingTotal = document.getElementById('totalDisplay');
+    if (existingTotal) {
+      existingTotal.textContent = `Total: ${total}%`;
+      existingTotal.style.color = total === 100 ? '#4CAF50' : '#F44336';
+    }
+  }
+
+  combineSelectedDecks() {
+    const selectedDeckNames = Array.from(this.selectedDecks);
+    if (selectedDeckNames.length < 2) {
+      this.showNotification('少なくとも2つのデッキを選択してください', 'warning');
+      return;
+    }
+    
+    // Vérifier que les pourcentages totalisent 100%
+    const totalWeight = selectedDeckNames.reduce((sum, name) => {
+      const input = this.deckWeights[name]?.input;
+      return sum + (input ? parseInt(input.value) || 0 : 0);
+    }, 0);
+    
+    if (totalWeight !== 100) {
+      this.showNotification(`合計は100%である必要があります (現在: ${totalWeight}%)`, 'error');
+      return;
+    }
+    
+    // Créer le deck combiné avec TOUTES les questions
+    const combinedQuestions = [];
+    const deckFrequencies = {};
+    let combinedName = '組み合わせ: ';
+    
+    // Collecter toutes les questions et les fréquences
+    selectedDeckNames.forEach((name, index) => {
+      const deck = this.decks[name];
+      const input = this.deckWeights[name]?.input;
+      const frequency = input ? parseInt(input.value) : 50;
+      
+      // Ajouter toutes les questions du deck
+      combinedQuestions.push(...deck.data.map(q => ({
+        ...q,
+        _sourceDeck: name,
+        _frequency: frequency
+      })));
+      
+      deckFrequencies[name] = frequency;
+      combinedName += `${name}(${frequency}%)`;
+      if (index < selectedDeckNames.length - 1) combinedName += ' + ';
+    });
+    
+    // Créer un deck shufflé selon les fréquences
+    const frequencyOrderedQuestions = this.createFrequencyBasedOrder(combinedQuestions, deckFrequencies);
+    
+    this.decks[combinedName] = {
+      data: frequencyOrderedQuestions,
+      preloaded: false,
+      combined: true,
+      frequencies: deckFrequencies,
+      uploadDate: new Date().toISOString()
+    };
+    
+    this.updateDeckSelect();
+    this.elements.deckSelect.value = combinedName;
+    this.loadDeck(combinedName, false);
+    
+    this.showNotification(`デッキを組み合わせました: ${combinedQuestions.length}問`, 'success');
+  }
+
+  createFrequencyBasedOrder(questions, frequencies) {
+    // Séparer les questions par deck source
+    const questionsByDeck = {};
+    questions.forEach(q => {
+      if (!questionsByDeck[q._sourceDeck]) {
+        questionsByDeck[q._sourceDeck] = [];
+      }
+      questionsByDeck[q._sourceDeck].push(q);
+    });
+    
+    // Créer un ordre basé sur les fréquences
+    const orderedQuestions = [];
+    const totalQuestions = questions.length;
+    
+    // Calculer combien de questions de chaque deck dans l'ordre
+    Object.keys(frequencies).forEach(deckName => {
+      const frequency = frequencies[deckName];
+      const deckQuestions = questionsByDeck[deckName] || [];
+      
+      // Mélanger les questions du deck
+      this.shuffleArray(deckQuestions);
+      
+      // Calculer la séquence d'apparition basée sur la fréquence
+      // Par exemple: 80% = 8 questions puis 20% = 2 questions, puis recommencer
+      const pattern = Math.round(frequency / 10); // 80% = 8, 20% = 2
+      
+      // Marquer chaque question avec sa priorité de fréquence
+      deckQuestions.forEach((q, index) => {
+        q._frequencyOrder = (index % 10) < pattern ? 1 : 0;
+        q._originalIndex = index;
+      });
+    });
+    
+    // Créer l'ordre final en alternant selon les fréquences
+    const allQuestionsWithFreq = Object.values(questionsByDeck).flat();
+    this.shuffleArray(allQuestionsWithFreq);
+    
+    // Trier par fréquence tout en gardant un aspect aléatoire
+    allQuestionsWithFreq.sort((a, b) => {
+      // D'abord par fréquence, puis par hasard
+      if (b._frequency !== a._frequency) {
+        return b._frequency - a._frequency;
+      }
+      return Math.random() - 0.5;
+    });
+    
+    return allQuestionsWithFreq;
+  }
+
+  updateDeleteButtonVisibility() {
+    const selectedDeck = this.elements.deckSelect?.value;
+    const shouldShow = selectedDeck && this.decks[selectedDeck] && !this.decks[selectedDeck].preloaded;
+    this.elements.deleteDeckBtn.style.display = shouldShow ? 'inline-block' : 'none';
+  }
+
+  handleDeckChange() {
+    const deckName = this.elements.deckSelect?.value;
+    if (deckName && this.decks[deckName]) {
+      this.loadDeck(deckName, false);
+    }
+    this.updateDeleteButtonVisibility();
+  }
+
+  loadDeck(deckName, shuffleAtLoad = false) {
+    try {
+      if (!this.decks[deckName]) {
+        throw new Error(`デッキ '${deckName}' が見つかりません`);
+      }
+
+      this.questions = [...this.decks[deckName].data];
+      this.setupRangeOptions();
+      this.filteredQuestions = [...this.questions];
+      
+      if (shuffleAtLoad && this.shuffleMode) {
+        this.shuffleArray(this.filteredQuestions);
+      }
+      
+      this.currentIndex = 0;
+      this.correctCount = 0;
+      this.missedQuestions = [];
+      this.missedCount = 0;
+      
+      this.elements.quizContainer.style.display = 'block';
+      this.elements.rangeSelect.style.display = 'block';
+      
+      this.showQuestion();
+      this.showNotification(`${deckName}を開始しました`, 'success');
+    } catch (error) {
+      this.showNotification(`エラー: ${error.message}`, 'error');
+    }
+  }
+
+  setupRangeOptions() {
+    if (!this.elements.rangeSelect) return;
+
+    this.elements.rangeSelect.innerHTML = '<option value="all">すべてのカード</option>';
+    
+    const step = 100;
+    for (let i = 0; i < this.questions.length; i += step) {
+      const end = Math.min(i + step, this.questions.length);
+      const option = document.createElement('option');
+      option.value = `${i}-${end - 1}`;
+      option.textContent = `${i + 1} — ${end}`;
+      this.elements.rangeSelect.appendChild(option);
+    }
+  }
+
+  filterQuestions() {
+    const value = this.elements.rangeSelect?.value;
+    
+    if (value === 'all') {
+      this.filteredQuestions = [...this.questions];
+    } else {
+      const [start, end] = value.split('-').map(Number);
+      this.filteredQuestions = this.questions.slice(start, end + 1);
+    }
+    
+    if (this.shuffleMode) {
+      this.shuffleArray(this.filteredQuestions);
+    }
+    
+    this.currentIndex = 0;
+    this.correctCount = 0;
+    this.missedCount = 0;
+    this.showQuestion();
+  }
+
+  shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  startTimer() {
+    if (this.timeLimit <= 0) {
+      this.elements.timerDisplay.style.display = 'none';
+      return;
+    }
+    
+    this.stopTimer();
+    this.timeRemaining = this.timeLimit;
+    this.elements.timerDisplay.style.display = 'block';
+    this.elements.timerDisplay.textContent = this.timeRemaining;
+    this.elements.timerDisplay.className = 'timer-container';
+    
+    this.timer = setInterval(() => {
+      this.timeRemaining--;
+      this.elements.timerDisplay.textContent = this.timeRemaining;
+      
+      if (this.timeRemaining <= 5) {
+        this.elements.timerDisplay.className = 'timer-container critical';
+      } else if (this.timeRemaining <= 10) {
+        this.elements.timerDisplay.className = 'timer-container warning';
+      }
+      
+      if (this.timeRemaining <= 0) {
+        this.timeUp();
+      }
+    }, 1000);
+  }
+
+  stopTimer() {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+  }
+
+  timeUp() {
+    this.stopTimer();
+    this.elements.resultDiv.textContent = '⏰ 時間切れ';
+    this.elements.resultDiv.style.color = '#FF9800';
+    this.elements.commentDiv.textContent = `正解は: ${this.filteredQuestions[this.currentIndex].Answers}`;
+    
+    this.missedQuestions.push(this.filteredQuestions[this.currentIndex]);
+    this.missedCount++;
+    this.stats.streak = 0;
+    
+    if (this.maxMissed > 0 && this.missedCount >= this.maxMissed) {
+      setTimeout(() => this.showResults(), 1500);
+    } else {
+      setTimeout(() => this.nextQuestion(), 1500);
+    }
+  }
+
+  isMultipleChoice() {
+    return this.multipleChoiceMode;
+  }
+
+  showQuestion() {
+    if (this.currentIndex < this.filteredQuestions.length) {
+      const q = this.filteredQuestions[this.currentIndex];
+      
+      this.elements.questionDiv.innerHTML = this.parseUnderline(q.Question);
+      this.elements.instructionsDiv.innerHTML = this.parseUnderline(q.Instructions || '');
+      this.elements.answerInput.value = '';
+      this.elements.resultDiv.textContent = '';
+      this.elements.commentDiv.innerHTML = '';
+      
+      // Check if this is multiple choice
+      if (this.isMultipleChoice()) {
+        this.showMultipleChoice(q);
+        this.elements.inputContainer.style.display = 'none';
+      } else {
+        this.elements.multipleChoiceContainer.style.display = 'none';
+        this.elements.inputContainer.style.display = 'block';
+        setTimeout(() => this.elements.answerInput?.focus(), 50);
+      }
+      
+      this.updateProgress();
+      this.saveConquest();
+      this.startTimer();
+      
+      document.title = `Quiz (${this.currentIndex + 1}/${this.filteredQuestions.length})`;
+    } else {
+      this.showResults();
+    }
+  }
+
+  showMultipleChoice(question) {
+    this.elements.multipleChoiceContainer.style.display = 'grid';
+    this.elements.multipleChoiceContainer.innerHTML = '';
+    
+    // Récupérer la bonne réponse
+    const correctAnswers = question.Answers.split(',').map(a => a.trim());
+    const correctAnswer = correctAnswers[0]; // Prendre la première réponse correcte
+    
+    // Générer 3 mauvaises réponses depuis tous les decks disponibles
+    const allAnswers = [];
+    Object.values(this.decks).forEach(deck => {
+      deck.data.forEach(q => {
+        if (q.Answers) {
+          const answers = q.Answers.split(',').map(a => a.trim());
+          allAnswers.push(...answers);
+        }
+      });
+    });
+    
+    // Filtrer pour éviter les doublons et la bonne réponse
+    const uniqueAnswers = [...new Set(allAnswers)].filter(answer => 
+      !correctAnswers.some(correct => 
+        this.normalizeAnswer(answer) === this.normalizeAnswer(correct)
+      )
+    );
+    
+    // Sélectionner 3 mauvaises réponses aléatoirement
+    const wrongAnswers = [];
+    const shuffledAnswers = [...uniqueAnswers];
+    this.shuffleArray(shuffledAnswers);
+    
+    for (let i = 0; i < 3 && i < shuffledAnswers.length; i++) {
+      wrongAnswers.push(shuffledAnswers[i]);
+    }
+    
+    // Compléter avec des réponses génériques si pas assez
+    while (wrongAnswers.length < 3) {
+      wrongAnswers.push(`選択肢${wrongAnswers.length + 1}`);
+    }
+    
+    // Créer les 4 choix et mélanger
+    const choices = [correctAnswer, ...wrongAnswers];
+    this.shuffleArray(choices);
+    
+    // Créer les boutons
+    choices.forEach((choice, index) => {
+      const button = document.createElement('button');
+      button.className = 'choice-button';
+      button.innerHTML = `<span class="choice-number">${index + 1}</span>${choice}`;
+      button.addEventListener('click', () => this.selectChoice(index));
+      this.elements.multipleChoiceContainer.appendChild(button);
+    });
+    
+    // Stocker les choix pour la validation
+    this.currentChoices = choices;
+  }
+
+  selectChoice(choiceIndex) {
+    const buttons = this.elements.multipleChoiceContainer.querySelectorAll('.choice-button');
+    const currentQ = this.filteredQuestions[this.currentIndex];
+    
+    // Clear previous selections
+    buttons.forEach(btn => btn.classList.remove('selected', 'correct', 'incorrect'));
+    
+    const selectedButton = buttons[choiceIndex];
+    selectedButton.classList.add('selected');
+    
+    const selectedChoice = this.currentChoices[choiceIndex];
+    const correctAnswers = currentQ.Answers.split(',').map(a => a.trim());
+    
+    const isCorrect = correctAnswers.some(answer => 
+      this.normalizeAnswer(selectedChoice) === this.normalizeAnswer(answer)
+    );
+    
+    // Show correct/incorrect styling
+    buttons.forEach((btn, index) => {
+      const choice = this.currentChoices[index];
+      const isThisCorrect = correctAnswers.some(answer => 
+        this.normalizeAnswer(choice) === this.normalizeAnswer(answer)
+      );
+      
+      if (isThisCorrect) {
+        btn.classList.add('correct');
+      } else if (index === choiceIndex && !isCorrect) {
+        btn.classList.add('incorrect');
+      }
+    });
+    
+    if (isCorrect) {
+      this.handleCorrectAnswer();
+    } else {
+      this.handleIncorrectAnswer();
+    }
+    
+    this.stats.totalAnswered++;
+  }
+
+  handleAnswerInput(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const answer = this.elements.answerInput?.value.trim() || '';
+      
+      if (answer === '') {
+        this.skipQuestion();
+      } else {
+        this.checkAnswer();
+      }
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      this.showHint();
+    }
+  }
+
+  checkAnswer() {
+    const userAnswer = this.normalizeAnswer(this.elements.answerInput?.value || '');
+    const correctAnswers = this.filteredQuestions[this.currentIndex].Answers
+      .split(',')
+      .map(a => this.normalizeAnswer(a.trim()))
+      .filter(a => a.length > 0);
+
+    if (correctAnswers.includes(userAnswer)) {
+      this.handleCorrectAnswer();
+    } else {
+      this.handleIncorrectAnswer();
+    }
+    
+    this.stats.totalAnswered++;
+  }
+
+  handleCorrectAnswer() {
+    this.stopTimer();
+    this.elements.resultDiv.textContent = '✅ 正解！';
+    this.elements.resultDiv.style.color = '#4CAF50';
+    this.elements.commentDiv.innerHTML = this.filteredQuestions[this.currentIndex].Comment || '';
+    
+    this.correctCount++;
+    this.stats.streak++;
+    
+    if (this.stats.streak > this.stats.bestStreak) {
+      this.stats.bestStreak = this.stats.streak;
+      this.showNotification(`新記録のストリーク: ${this.stats.bestStreak}連続正解！`, 'success');
+    }
+    
+    this.saveStats();
+    
+    if (this.elements.answerInput.style.display !== 'none') {
+      this.elements.answerInput.style.backgroundColor = '#1B5E20';
+      setTimeout(() => {
+        this.elements.answerInput.style.backgroundColor = '#1a1a1a';
+        this.nextQuestion();
+      }, 800);
+    } else {
+      setTimeout(() => this.nextQuestion(), 800);
+    }
+  }
+
+  handleIncorrectAnswer() {
+    this.stopTimer();
+    
+    if (this.conquestMode && !this.hardcoreMode) {
+      // Conquest mode: just reset input without showing answer
+      this.elements.answerInput.value = '';
+      this.elements.resultDiv.textContent = '❌ もう一度';
+      this.elements.resultDiv.style.color = '#FF9800';
+      this.startTimer(); // Restart timer
+      return;
+    }
+    
+    // Normal mode or hardcore mode: show answer and continue
+    this.elements.resultDiv.textContent = `❌ 不正解 - 正解: ${this.filteredQuestions[this.currentIndex].Answers}`;
+    this.elements.resultDiv.style.color = '#F44336';
+    
+    this.missedQuestions.push(this.filteredQuestions[this.currentIndex]);
+    this.missedCount++;
+    this.stats.streak = 0;
+    
+    if (this.elements.answerInput.style.display !== 'none') {
+      this.elements.answerInput.style.backgroundColor = '#B71C1C';
+      this.elements.answerInput.value = '';
+      
+      setTimeout(() => {
+        this.elements.answerInput.style.backgroundColor = '#1a1a1a';
+        if (this.maxMissed > 0 && this.missedCount >= this.maxMissed) {
+          this.showResults();
+        } else {
+          this.nextQuestion();
+        }
+      }, 1500);
+    } else {
+      setTimeout(() => {
+        if (this.maxMissed > 0 && this.missedCount >= this.maxMissed) {
+          this.showResults();
+        } else {
+          this.nextQuestion();
+        }
+      }, 1500);
+    }
+  }
+
+  skipQuestion() {
+    this.stopTimer();
+    this.elements.resultDiv.textContent = '⭐️ スキップ';
+    this.elements.resultDiv.style.color = '#FF9800';
+    this.elements.commentDiv.textContent = `正解は: ${this.filteredQuestions[this.currentIndex].Answers}`;
+    
+    this.missedQuestions.push(this.filteredQuestions[this.currentIndex]);
+    this.missedCount++;
+    this.stats.streak = 0;
+    
+    setTimeout(() => {
+      if (this.maxMissed > 0 && this.missedCount >= this.maxMissed) {
+        this.showResults();
+      } else {
+        this.nextQuestion();
+      }
+    }, 1000);
+  }
+
+  showHint() {
+    const currentQ = this.filteredQuestions[this.currentIndex];
+    const firstAnswer = currentQ.Answers.split(',')[0].trim();
+    const hint = firstAnswer.substring(0, Math.ceil(firstAnswer.length / 3)) + '...';
+    this.showNotification(`ヒント: ${hint}`, 'info');
+  }
+
+  updateProgress() {
+    if (!this.elements.progressContainer) return;
+
+    this.elements.progressContainer.style.display = 'block';
+    
+    const current = this.currentIndex + 1;
+    const total = this.filteredQuestions.length;
+    const percent = Math.round((current / total) * 100);
+    
+    this.elements.progressText.innerHTML = `
+      <span>${current} / ${total} (${percent}%)</span>
+      <span class="missed-counter">ミス: ${this.missedCount}${this.maxMissed > 0 ? ` / ${this.maxMissed}` : ''}</span>
+    `;
+    this.elements.progressFill.style.width = `${percent}%`;
+    
+    const colors = [
+      { threshold: 20, color: '#E0BBE4' },
+      { threshold: 40, color: '#D291BC' },
+      { threshold: 60, color: '#957DAD' },
+      { threshold: 80, color: '#6A0572' },
+      { threshold: 100, color: '#3C003C' }
+    ];
+    
+    const color = colors.find(c => percent <= c.threshold)?.color || '#3C003C';
+    this.elements.progressFill.style.background = color;
+  }
+
+  nextQuestion() {
+    this.currentIndex++;
+    this.showQuestion();
+  }
+
+  parseUnderline(text) {
+    if (!text) return '';
+    return String(text).replace(/__(.*?)__/g, '<u>$1</u>');
+  }
+
+  normalizeAnswer(answer) {
+    try {
+      return wanakana.toHiragana(answer.trim().toLowerCase());
+    } catch (error) {
+      console.warn('Wanakana conversion failed:', error);
+      return answer.trim().toLowerCase();
+    }
+  }
+
+  showResults() {
+    this.stopTimer();
+    const total = this.filteredQuestions.length;
+    const missed = this.missedQuestions.length;
+    const success = this.correctCount;
+    const percentSuccess = Math.round((success / total) * 100);
+
+    this.elements.questionDiv.innerHTML = `
+      <div class="results-container">
+        <h2>📊 クイズ結果</h2>
+        <div class="stats-grid">
+          <div class="stat-item correct">
+            <span class="stat-number">${success}</span>
+            <span class="stat-label">正解</span>
+          </div>
+          <div class="stat-item incorrect">
+            <span class="stat-number">${missed}</span>
+            <span class="stat-label">不正解</span>
+          </div>
+          <div class="stat-item percentage">
+            <span class="stat-number">${percentSuccess}%</span>
+            <span class="stat-label">成功率</span>
+          </div>
+        </div>
+        ${this.stats.bestStreak > 1 ? `<p>🔥 最高連続正解: ${this.stats.bestStreak}</p>` : ''}
+        ${this.maxMissed > 0 && this.missedCount >= this.maxMissed ? '<p>❌ 最大ミス数に達しました</p>' : ''}
+      </div>
+    `;
+
+    this.elements.instructionsDiv.innerHTML = '';
+    this.elements.inputContainer.style.display = 'none';
+    this.elements.multipleChoiceContainer.style.display = 'none';
+    this.elements.progressContainer.style.display = 'none';
+    this.elements.timerDisplay.style.display = 'none';
+    document.title = 'Quiz - 完了';
+    
+    localStorage.removeItem('conquestSession');
+    
+    this.createResultButtons(missed > 0);
+    this.showPerformanceMessage(percentSuccess);
+  }
+
+  createResultButtons(hasMissed) {
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'result-buttons';
+
+    if (hasMissed) {
+      const reviewBtn = this.createButton('🔄 復習モード', () => this.startReview());
+      buttonContainer.appendChild(reviewBtn);
+    }
+
+    const restartBtn = this.createButton('🔄 再開始', () => this.restartQuiz());
+    const newDeckBtn = this.createButton('📚 新しいデッキ', () => this.resetForNewDeck());
+    
+    buttonContainer.appendChild(restartBtn);
+    buttonContainer.appendChild(newDeckBtn);
+    
+    this.elements.questionDiv.appendChild(buttonContainer);
+  }
+
+  createButton(text, handler) {
+    const button = document.createElement('button');
+    button.textContent = text;
+    button.style.margin = '5px';
+    button.addEventListener('click', handler);
+    return button;
+  }
+
+  startReview() {
+    this.filteredQuestions = [...this.missedQuestions];
+    this.missedQuestions = [];
+    this.currentIndex = 0;
+    this.correctCount = 0;
+    this.missedCount = 0;
+    this.showQuestion();
+    this.showNotification('復習モードを開始します', 'info');
+  }
+
+  restartQuiz() {
+    this.currentIndex = 0;
+    this.correctCount = 0;
+    this.missedQuestions = [];
+    this.missedCount = 0;
+    this.filterQuestions();
+    this.showNotification('クイズを再開始しました', 'info');
+  }
+
+  resetForNewDeck() {
+    this.elements.quizContainer.style.display = 'none';
+    this.elements.rangeSelect.style.display = 'none';
+    this.elements.progressContainer.style.display = 'none';
+    this.elements.timerDisplay.style.display = 'none';
+    this.elements.deckSelect.value = '';
+    document.title = 'Enhanced Yomitan Quiz';
+  }
+
+  showPerformanceMessage(percentage) {
+    let message, type;
+    
+    if (percentage >= 90) {
+      message = '🏆 素晴らしい！完璧に近い成績です！';
+      type = 'success';
+    } else if (percentage >= 70) {
+      message = '👏 良い成績です！';
+      type = 'success';
+    } else if (percentage >= 50) {
+      message = '📚 もう少し頑張りましょう！';
+      type = 'info';
+    } else {
+      message = '💪 練習を続けて頑張りましょう！';
+      type = 'warning';
+    }
+    
+    setTimeout(() => this.showNotification(message, type), 500);
+  }
+
+  saveConquest() {
+    if (!this.conquestMode) return;
+    
+    try {
+      const session = {
+        currentIndex: this.currentIndex,
+        filteredQuestions: this.filteredQuestions,
+        correctCount: this.correctCount,
+        missedQuestions: this.missedQuestions,
+        missedCount: this.missedCount,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('conquestSession', JSON.stringify(session));
+    } catch (error) {
+      console.warn('Failed to save conquest session:', error);
+    }
+  }
+
+  loadConquest() {
+    try {
+      const sessionData = localStorage.getItem('conquestSession');
+      if (!sessionData) return;
+      
+      const session = JSON.parse(sessionData);
+      
+      // Check if session is not too old (24 hours)
+      if (Date.now() - session.timestamp > 24 * 60 * 60 * 1000) {
+        localStorage.removeItem('conquestSession');
+        return;
+      }
+      
+      this.filteredQuestions = session.filteredQuestions || [];
+      this.currentIndex = session.currentIndex || 0;
+      this.correctCount = session.correctCount || 0;
+      this.missedQuestions = session.missedQuestions || [];
+      this.missedCount = session.missedCount || 0;
+      
+      if (this.filteredQuestions.length > 0) {
+        this.showQuestion();
+        this.showNotification('前回のセッションを復元しました', 'info');
+      }
+    } catch (error) {
+      console.warn('Failed to load conquest session:', error);
+      localStorage.removeItem('conquestSession');
+    }
+  }
+
+  deleteDeck() {
+    const selectedDeck = this.elements.deckSelect?.value;
+    if (!selectedDeck || !this.decks[selectedDeck] || this.decks[selectedDeck].preloaded) {
+      return;
+    }
+
+    if (!confirm(`「${selectedDeck}」を削除しますか？`)) {
+      return;
+    }
+
+    delete this.decks[selectedDeck];
+    this.resetForNewDeck();
+    this.updateDeckSelect();
+    this.updateDeckCombination();
+    this.showNotification(`${selectedDeck}を削除しました`, 'info');
+  }
+
+  async loadPreloadedDecks() {
+    const preloadedDecks = ["decks/jouyou.csv", "decks/non-jouyou.csv", "decks/non-jouyou_last_onyomi.csv"];
+    
+    for (const url of preloadedDecks) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) continue;
+        
+        const csvText = await response.text();
+        const deckName = url.split('/').pop().replace('.csv', '');
+        const results = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+        
+        this.decks[deckName] = { data: results.data, preloaded: true };
+      } catch (error) {
+        console.warn(`Failed to load preloaded deck ${url}:`, error);
+      }
+    }
+    
+    this.updateDeckSelect();
+    this.updateDeckCombination();
+    
+    // Auto-load first deck if available
+    const firstDeck = Object.keys(this.decks)[0];
+    if (firstDeck && !this.elements.deckSelect.value) {
+      this.elements.deckSelect.value = firstDeck;
+      this.loadDeck(firstDeck, true);
+    }
+  }
+
+  saveStats() {
+    try {
+      localStorage.setItem('quizStats', JSON.stringify(this.stats));
+    } catch (error) {
+      console.warn('Failed to save stats:', error);
+    }
+  }
+
+  loadStats() {
+    try {
+      const saved = localStorage.getItem('quizStats');
+      if (saved) {
+        this.stats = { ...this.stats, ...JSON.parse(saved) };
+      }
+    } catch (error) {
+      console.warn('Failed to load stats:', error);
+    }
+  }
+
+  showNotification(message, type = 'info') {
+    document.querySelectorAll('.notification').forEach(n => n.remove());
+    
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => notification.style.transform = 'translateX(0)', 10);
+    
+    setTimeout(() => {
+      notification.style.transform = 'translateX(100%)';
+      setTimeout(() => notification.remove(), 300);
+    }, 3000);
+  }
+}
+
+// Initialize the application when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  window.quizManager = new EnhancedQuizManager();
+});
+</script>
+
+</body>
+</html>
